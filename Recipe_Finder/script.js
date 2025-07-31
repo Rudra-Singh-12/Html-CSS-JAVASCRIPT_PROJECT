@@ -1,4 +1,4 @@
-// DOM Elements
+// DOM Elements: These constants store references to the HTML elements the script will interact with.
 const searchInput = document.getElementById("search-input");
 const searchBtn = document.getElementById("search-btn");
 const mealsContainer = document.getElementById("meals");
@@ -8,75 +8,95 @@ const mealDetails = document.getElementById("meal-details");
 const mealDetailsContent = document.querySelector(".meal-details-content");
 const backBtn = document.getElementById("back-btn");
 
-// api url 
+// API URLs: These constants define the endpoints for TheMealDB API.
 const BASE_URL = "https://www.themealdb.com/api/json/v1/1/";
-const SEARCH_URL = `${BASE_URL}search.php?s=`;
-const LOOKUP_URL = `${BASE_URL}lookup.php?i=`;
+const SEARCH_URL = `${BASE_URL}search.php?s=`; // URL to search for meals by name
+const LOOKUP_URL = `${BASE_URL}lookup.php?i=`; // URL to look up a single meal by its ID
 
+// --- Event Listeners ---
+
+// Triggers the search function when the search button is clicked.
 searchBtn.addEventListener("click", searchMeals);
 
-mealsContainer.addEventListener("click",handleMealClick);
+// Attaches a single click listener to the container for all meal cards.
+// This uses event delegation to efficiently handle clicks on dynamically added meals.
+mealsContainer.addEventListener("click", handleMealClick);
 
-backBtn.addEventListener("click",()=>{
+// Hides the meal details view when the "Back" button is clicked.
+backBtn.addEventListener("click", () => {
     mealDetails.classList.add("hidden");
-})
-
-searchInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter")
-        searchMeals()
 });
 
+// Allows the user to initiate a search by pressing the "Enter" key in the input field.
+searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        searchMeals();
+    }
+});
+
+// --- Core Functions ---
+
+/**
+ * Fetches meals from the API based on the user's search term and displays them.
+ * This is an async function because it uses 'await' to handle the API request.
+ */
 async function searchMeals() {
-    // getting the search value from user through input without whitespaces
+    // Get the user's input and remove any leading/trailing whitespace.
     const searchTerm = searchInput.value.trim();
 
-    // handle the edge case
+    // Validate the input to ensure it's not empty.
     if (!searchTerm) {
-        errorContainer.textContent = "Please enter a search term",
-            errorContainer.classList.remove("hidden");
+        errorContainer.textContent = "Please enter a search term";
+        errorContainer.classList.remove("hidden");
         return;
     }
-    // searching the meals in try block and error is handle by catch block
+
+    // A try...catch block is used to handle potential network errors during the API call.
     try {
-        // display the name for the search 
-        resultHeading.textContent = `Searching for "${searchTerm}" ...`;
-        // value of mealsContainer is none
+        // Provide user feedback that a search is in progress.
+        resultHeading.textContent = `Searching for "${searchTerm}"...`;
+        // Clear any previous search results and errors.
         mealsContainer.innerHTML = "";
-        // adding the features of class hidden from css
         errorContainer.classList.add("hidden");
 
-        // fetching the meals from API
+        // Make an asynchronous call to the API to fetch meal data.
+        // The 'await' keyword pauses the function until the request completes.
         const response = await fetch(`${SEARCH_URL}${searchTerm}`);
-        // getting the data from api in json format
+        // Parse the JSON response body into a JavaScript object.
         const data = await response.json();
-        // displaying the data in console
-        console.log("data is here:", data);
-        // handle edge case
+
+        // Check if the API returned any meals. `data.meals` will be null if no results are found.
         if (data.meals === null) {
-            // no meals found case
+            // Inform the user that no recipes were found for their search term.
             resultHeading.textContent = ``;
             mealsContainer.innerHTML = "";
-            errorContainer.textContent = `No recipes found for "${searchTerm}".Try another search term!`;
+            errorContainer.textContent = `No recipes found for "${searchTerm}". Try another search term!`;
             errorContainer.classList.remove("hidden");
         } else {
-          // displaying the meal  text content in web
+            // If meals are found, update the heading and display the results.
             resultHeading.textContent = `Search results for "${searchTerm}":`;
-            // calling the displayMeals function to display the results from api
+            // Call the helper function to render the meal cards to the DOM.
             displayMeals(data.meals);
-            searchTerm.value = "";
-
+            // Clear the search input field for the next search.
+            searchInput.value = "";
         }
-
-    } catch (error) { // handling the error in this block
-        errorContainer.textContent = "Something went wrong. Please try again later."
+    } catch (error) {
+        // Catch any errors (e.g., network failure) and display a generic error message.
+        errorContainer.textContent = "Something went wrong. Please try again later.";
         errorContainer.classList.remove("hidden");
     }
 }
-// methods to display the content in browser
+
+/**
+ * Renders an array of meal objects to the DOM as clickable cards.
+ * @param {Array<Object>} meals - An array of meal objects from the API.
+ */
 function displayMeals(meals) {
     mealsContainer.innerHTML = "";
-    // loop through meals and create a card for each meal from api result
+    // Loop through each meal and create its corresponding HTML element.
     meals.forEach((meal) => {
+        // Note: `data-meal-id` is a custom data attribute used to store the meal's unique ID.
+        // This ID is crucial for fetching the full recipe details later.
         mealsContainer.innerHTML += `
       <div class="meal" data-meal-id="${meal.idMeal}">
         <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
@@ -89,40 +109,44 @@ function displayMeals(meals) {
     });
 }
 
-// handling the click event on meal card-> onclick the description about the meals is generated through api
-async function handleMealClick(e){
-  // mealEl card 
-    const mealEl=e.target.closest(".meal");
-    // getting the id of the meal card
-    const mealId=mealEl.getAttribute("data-meal-id");
-    // edge case if mealId is null -> return
-    if(!mealId) return;
+/**
+ * Handles the click event on a meal card to fetch and display its full details.
+ * @param {Event} e - The click event object.
+ */
+async function handleMealClick(e) {
+    // `e.target.closest('.meal')` finds the nearest parent element with the class "meal".
+    // This ensures we get the meal card, even if the user clicks on an image or title inside it.
+    const mealEl = e.target.closest(".meal");
 
-    // handling the click event in try block
+    // If the click was outside a meal card, do nothing.
+    if (!mealEl) return;
+
+    // Retrieve the unique meal ID stored in the `data-meal-id` attribute.
+    const mealId = mealEl.getAttribute("data-meal-id");
+
     try {
-      // getting the response from api
-        const response=await fetch(`${LOOKUP_URL}${mealId}`);
-        // data from api
-        const data=await response.json();
-        // displaying the data on console
-        console.log(data);
-        // data,meals and data.meals[0] are coming from api response 
-        if(data.meals && data.meals[0]){
-          // data of click meal
-            const meal=data.meals[0];
-            // array to store the ingredient from api
-            const ingredients=[];
-            // display the ingredient 
-            for(let i=1;i<20;i++){
-                if(meal[`strIngredient${i}`] && meal[`strIngredient${i}`].trim()!==""){
+        // Fetch the detailed information for the specific meal using its ID.
+        const response = await fetch(`${LOOKUP_URL}${mealId}`);
+        const data = await response.json();
+
+        // Ensure the API returned a valid meal object.
+        if (data.meals && data.meals[0]) {
+            const meal = data.meals[0];
+
+            // The API returns up to 20 ingredients and measures in separate properties (e.g., strIngredient1, strMeasure1).
+            // This loop collects them into a clean array of objects.
+            const ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                if (meal[`strIngredient${i}`] && meal[`strIngredient${i}`].trim() !== "") {
                     ingredients.push({
-                        ingredient:meal[`strIngredient${i}`],
-                        measure:meal[`strMeasure${i}`]
-                    })
+                        ingredient: meal[`strIngredient${i}`],
+                        measure: meal[`strMeasure${i}`],
+                    });
                 }
             }
-            // display meal details
-      mealDetailsContent.innerHTML = `
+
+            // Populate the meal details container with the fetched data.
+            mealDetailsContent.innerHTML = `
            <img src="${meal.strMealThumb}" alt="${meal.strMeal}" class="meal-details-img">
            <h2 class="meal-details-title">${meal.strMeal}</h2>
            <div class="meal-details-category">
@@ -155,12 +179,13 @@ async function handleMealClick(e){
            }
          `;
 
-      mealDetails.classList.remove("hidden");
-      mealDetails.scrollIntoView({ behavior: "smooth" });
+            // Make the meal details section visible and scroll it into view.
+            mealDetails.classList.remove("hidden");
+            mealDetails.scrollIntoView({ behavior: "smooth" });
+        }
+    } catch (error) {
+        // Handle errors that might occur while fetching recipe details.
+        errorContainer.textContent = "Could not load recipe details. Please try again later.";
+        errorContainer.classList.remove("hidden");
     }
-    // handling the edge case
-  } catch (error) {
-    errorContainer.textContent = "Could not load recipe details. Please try again later.";
-    errorContainer.classList.remove("hidden");
-  }
 }

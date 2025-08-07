@@ -65,6 +65,8 @@ async function searchMeals() {
         // Parse the JSON response body into a JavaScript object.
         const data = await response.json();
 
+        console.log(data);
+
         // Check if the API returned any meals. `data.meals` will be null if no results are found.
         if (data.meals === null) {
             // Inform the user that no recipes were found for their search term.
@@ -128,6 +130,7 @@ async function handleMealClick(e) {
         // Fetch the detailed information for the specific meal using its ID.
         const response = await fetch(`${LOOKUP_URL}${mealId}`);
         const data = await response.json();
+        console.log(data);
 
         // Ensure the API returned a valid meal object.
         if (data.meals && data.meals[0]) {
